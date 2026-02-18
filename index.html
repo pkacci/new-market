@@ -13,19 +13,37 @@
             --warning: #f59e0b; --danger: #ef4444; --success: #10b981;
             --text-main: #f1f5f9; --text-muted: #94a3b8;
         }
-        body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: var(--text-main); margin: 0; padding-bottom: 30px; }
+
+        /* Impede o pull-to-refresh acidental e define o fundo */
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background: var(--bg-primary); 
+            color: var(--text-main); 
+            margin: 0; 
+            padding-bottom: 30px;
+            overscroll-behavior-y: contain; 
+        }
         
-        #loader-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.9); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 3000; backdrop-filter: blur(5px); }
+        /* Loader Inicial (Inicia visível para evitar o piscar do login) */
+        #loader-overlay { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: var(--bg-primary); display: flex; flex-direction: column; 
+            align-items: center; justify-content: center; z-index: 5000; 
+        }
         .spinner { width: 40px; height: 40px; border: 4px solid rgba(56, 189, 248, 0.1); border-top: 4px solid var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
-        #login-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-primary); display: flex; align-items: center; justify-content: center; z-index: 2000; }
-        
+        /* Telas (Iniciam ocultas) */
+        #login-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-primary); display: none; align-items: center; justify-content: center; z-index: 2000; }
+        #app-content { display: none; }
+
         .card { background: var(--bg-card); margin: 15px; padding: 20px; border-radius: 16px; box-shadow: 0 10px 15px rgba(0,0,0,0.5); }
-        input { width: 100%; padding: 14px; margin-bottom: 12px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; font-size: 16px; box-sizing: border-box; }
+        input { width: 100%; padding: 14px; margin-bottom: 12px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; font-size: 16px; box-sizing: border-box; outline: none; }
+        input:focus { border-color: var(--accent); }
         .modo-edicao { border: 2px solid var(--warning) !important; background: #2d2a1e !important; }
         
-        button { width: 100%; padding: 15px; border-radius: 8px; border: none; font-weight: 700; cursor: pointer; }
+        button { width: 100%; padding: 15px; border-radius: 8px; border: none; font-weight: 700; cursor: pointer; transition: 0.2s; }
+        button:active { opacity: 0.8; transform: scale(0.98); }
         .btn-main { background: var(--accent); color: #0f172a; }
         .btn-wa { background: #25d366; color: white; margin-top: 10px; }
         
@@ -43,7 +61,7 @@
 </head>
 <body>
 
-    <div id="loader-overlay"><div class="spinner"></div></div>
+    <div id="loader-overlay"><div class="spinner"></div><p style="color: var(--accent); margin-top:10px;">A carregar Newmarket...</p></div>
 
     <div id="login-screen">
         <div class="card" style="width: 85%; max-width: 350px;">
@@ -54,7 +72,7 @@
         </div>
     </div>
 
-    <div id="app-content" style="display:none;">
+    <div id="app-content">
         <header style="padding: 15px; text-align: center; border-bottom: 1px solid #334155;">
             <strong>NEWMARKET PRO</strong>
         </header>
@@ -99,7 +117,7 @@
         const db = getFirestore(app);
         let editandoId = null;
 
-        enableIndexedDbPersistence(db).catch(() => console.log("Offline mode active"));
+        enableIndexedDbPersistence(db).catch(() => console.log("Modo offline ativo"));
 
         const loader = (s) => document.getElementById('loader-overlay').style.display = s ? 'flex' : 'none';
         const toBR = (val) => { if(!val) return "S/ Data"; const [y, m, d] = val.split('-'); return `${d}/${m}/${y}`; };
@@ -112,24 +130,34 @@
             return { l: 'OK', c: 'badge-ok' };
         };
 
+        // --- MONITOR DE SESSÃO CORRIGIDO ---
         onAuthStateChanged(auth, (u) => {
-            document.getElementById('login-screen').style.display = u ? 'none' : 'flex';
-            document.getElementById('app-content').style.display = u ? 'block' : 'none';
+            loader(false); // Remove o splash screen inicial
+            
             if(u) {
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('app-content').style.display = 'block';
                 carregar();
+                
+                // Abre código automaticamente se vier via link
                 const urlParams = new URLSearchParams(window.location.search);
                 const eanUrl = urlParams.get('ean');
-                if(eanUrl) setTimeout(() => window.showBC(eanUrl, "Consulta Rápida"), 1500);
+                if(eanUrl) setTimeout(() => window.showBC(eanUrl, "Consulta Rápida"), 1000);
+            } else {
+                document.getElementById('login-screen').style.display = 'flex';
+                document.getElementById('app-content').style.display = 'none';
             }
         });
 
         document.getElementById('btn-entrar').addEventListener('click', () => {
             loader(true);
-            signInWithEmailAndPassword(auth, document.getElementById('l-email').value, document.getElementById('l-senha').value).catch(e => { loader(false); alert("Erro no login"); });
+            const email = document.getElementById('l-email').value;
+            const senha = document.getElementById('l-senha').value;
+            signInWithEmailAndPassword(auth, email, senha).catch(e => { loader(false); alert("Dados inválidos."); });
         });
 
         async function carregar() {
-            const q = query(collection(db, "estoque"), orderBy("timestamp", "desc"), limit(15));
+            const q = query(collection(db, "estoque"), orderBy("timestamp", "desc"), limit(20));
             const snap = await getDocs(q);
             const lista = document.getElementById('lista');
             lista.innerHTML = "";
@@ -147,7 +175,6 @@
                         </div>
                     </div>`;
             });
-            loader(false);
         }
 
         document.getElementById('btn-salvar').addEventListener('click', async () => {
@@ -158,9 +185,11 @@
             if(!e || !v) return alert("Preencha EAN e Data!");
             loader(true);
             const d = { nome: n, ean: e, validade: v, quantidade: Number(q), usuario: auth.currentUser.email, timestamp: serverTimestamp() };
-            if(editandoId) await updateDoc(doc(db, "estoque", editandoId), d);
-            else await addDoc(collection(db, "estoque"), d);
-            location.reload();
+            try {
+                if(editandoId) await updateDoc(doc(db, "estoque", editandoId), d);
+                else await addDoc(collection(db, "estoque"), d);
+                location.reload();
+            } catch(err) { alert("Erro ao guardar."); loader(false); }
         });
 
         window.showBC = (ean, nome) => {
@@ -175,10 +204,10 @@
             document.getElementById('validade').value = i.validade; document.getElementById('qtd').value = i.quantidade;
             document.getElementById('ean').classList.add('modo-edicao'); editandoId = id;
             document.getElementById('btn-salvar').innerText = "ATUALIZAR";
-            window.scrollTo(0,0); loader(false);
+            window.scrollTo({top: 0, behavior: 'smooth'}); loader(false);
         };
 
-        window.del = async (id) => { if(confirm("Apagar?")) { loader(true); await deleteDoc(doc(db, "estoque", id)); carregar(); }};
+        window.del = async (id) => { if(confirm("Apagar registro?")) { loader(true); await deleteDoc(doc(db, "estoque", id)); carregar(); loader(false); }};
         window.sair = () => signOut(auth);
 
         document.getElementById('btn-wa').addEventListener('click', () => {
