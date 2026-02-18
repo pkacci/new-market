@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Newmarket - Gestão de Validade</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-primary: #0f172a;
+            --bg-card: #1e293b;
+            --accent: #38bdf8;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --success: #10b981;
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-main);
+            margin: 0;
+            padding-bottom: 80px; /* Espaço para o nav */
+        }
+
+        /* --- LOADERS E OVERLAYS --- */
+        #loader-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.9);
+            display: none; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 3000; backdrop-filter: blur(5px);
+        }
+        .spinner {
+            width: 40px; height: 40px; border: 4px solid rgba(56, 189, 248, 0.1);
+            border-top: 4px solid var(--accent); border-radius: 50%; animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* --- LOGIN SCREEN --- */
+        #login-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-primary); display: flex; align-items: center; justify-content: center; z-index: 2000;
+        }
+
+        /* --- UI COMPONENTS --- */
+        .card {
+            background: var(--bg-card); margin: 15px; padding: 20px; border-radius: 16px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+        }
+
+        .logo-area { font-weight: 700; font-size: 1.5rem; color: var(--accent); margin-bottom: 25px; text-align: center; }
+
+        input {
+            width: 100%; padding: 14px; margin-bottom: 12px; border-radius: 8px;
+            border: 1px solid #334155; background: #0f172a; color: white;
+            font-size: 1rem; box-sizing: border-box; outline: none; transition: 0.3s;
+        }
+        input:focus { border-color: var(--accent); }
+        .modo-edicao { border: 2px solid var(--warning) !important; background: #2d2a1e !important; }
+
+        button {
+            width: 100%; padding: 15px; border-radius: 8px; border: none;
+            font-weight: 700; font-size: 1rem; cursor: pointer; transition: 0.2s;
+        }
+        .btn-main { background: var(--accent); color: #0f172a; }
+        .btn-whatsapp { background: #25d366; color: white; margin-top: 10px; }
+        .btn-logout { background: transparent; color: var(--danger); border: 1px solid var(--danger); margin-top: 15px; }
+
+        /* --- HISTÓRICO --- */
+        .history-item {
+            background: #0f172a; padding: 15px; border-radius: 10px; margin-top: 10px;
+            border-left: 4px solid var(--accent);
+        }
+        .badge { font-size: 0.7rem; padding: 4px 8px; border-radius: 4px; font-weight: bold; float: right; }
+        .badge-vencido { background: var(--danger); color: white; }
+        .badge-alerta { background: var(--warning); color: #000; }
+        .badge-ok { background: var(--success); color: #000; }
+
+        .actions { display: flex; gap: 10px; margin-top: 12px; }
+        .btn-edit { flex: 1; background: #334155; color: white; padding: 8px; font-size: 0.8rem; border-radius: 5px; }
+        .btn-del { flex: 1; background: #7f1d1d; color: white; padding: 8px; font-size: 0.8rem; border-radius: 5px; }
+
+        #app-content { display: none; }
+    </style>
+</head>
+<body>
+
+    <div id="loader-overlay">
+        <div class="spinner"></div>
+        <p style="color: var(--accent); margin-top: 15px;">Aguarde...</p>
+    </div>
+
+    <div id="login-screen">
+        <div class="card" style="width: 85%; max-width: 350px;">
+            <div class="logo-area">NEWMARKET</div>
+            <input type="email" id="login-email" placeholder="E-mail">
+            <input type="password" id="login-senha" placeholder="Senha">
+            <button class="btn-main" id="btn-entrar">ENTRAR</button>
+            <p id="login-erro" style="color: var(--danger); font-size: 0.8rem; margin-top: 10px; text-align: center; display: none;"></p>
+        </div>
+    </div>
+
+    <div id="app-content">
+        <header style="padding: 15px; text-align: center; border-bottom: 1px solid #334155;">
+            <strong style="color: var(--accent);">NEWMARKET</strong>
+        </header>
+
+        <div class="card">
+            <div id="alerta-pre" style="display:none; padding:10px; border-radius:8px; margin-bottom:10px; text-align:center; font-size:0.8rem; font-weight:bold;"></div>
+            
+            <input type="text" id="ean" placeholder="Código EAN" inputmode="numeric">
+            <input type="date" id="validade">
+            <input type="number" id="qtd" placeholder="Quantidade em gôndola">
+            
+            <button class="btn-main" id="btn-salvar">REGISTRAR LOTE</button>
+            <button class="btn-whatsapp" id="btn-report">📲 WHATSAPP DO TURNO</button>
+        </div>
+
+        <div style="padding: 0 15px;">
+            <h4 style="color: var(--text-muted); text-transform: uppercase; font-size: 0.75rem;">Últimos Registros</h4>
+            <div id="lista-historico"></div>
+            <button class="btn-logout" id="btn-logout">Sair do Sistema</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, getDocs, doc, deleteDoc, updateDoc, getDoc, query, orderBy, limit, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCP-R0LVH_lEmZ3ks1Z4f64HwhzxmShZpg",
+            authDomain: "new-market-d4c5a.firebaseapp.com",
+            projectId: "new-market-d4c5a",
+            storageBucket: "new-market-d4c5a.firebasestorage.app",
+            messagingSenderId: "261011659066",
+            appId: "1:261011659066:web:36d66d6125b8db65621803"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let editandoId = null;
+
+        // UI HELPERS
+        const toggleLoader = (s) => document.getElementById('loader-overlay').style.display = s ? 'flex' : 'none';
+
+        // AUTH MONITOR
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('app-content').style.display = 'block';
+                carregarHistorico();
+            } else {
+                document.getElementById('login-screen').style.display = 'flex';
+                document.getElementById('app-content').style.display = 'none';
+            }
+        });
+
+        // LOGIN
+        document.getElementById('btn-entrar').addEventListener('click', () => {
+            const e = document.getElementById('login-email').value;
+            const s = document.getElementById('login-senha').value;
+            toggleLoader(true);
+            signInWithEmailAndPassword(auth, e, s).catch(() => {
+                toggleLoader(false);
+                document.getElementById('login-erro').style.display = 'block';
+                document.getElementById('login-erro').innerText = "Acesso Negado.";
+            });
+        });
+
+        // CALCULAR STATUS
+        function getStatus(data) {
+            const d = new Date(data);
+            const hoje = new Date();
+            const diff = Math.ceil((d - hoje) / (1000 * 60 * 60 * 24));
+            if (diff <= 0) return { l: 'VENCIDO', c: 'badge-vencido' };
+            if (diff <= 15) return { l: 'CRÍTICO', c: 'badge-alerta' };
+            return { l: 'OK', c: 'badge-ok' };
+        }
+
+        // CARREGAR HISTÓRICO
+        async function carregarHistorico() {
+            const q = query(collection(db, "estoque"), orderBy("timestamp", "desc"), limit(5));
+            const snap = await getDocs(q);
+            const lista = document.getElementById('lista-historico');
+            lista.innerHTML = "";
+            snap.forEach(d => {
+                const item = d.data();
+                const st = getStatus(item.validade);
+                lista.innerHTML += `
+                    <div class="history-item">
+                        <span class="badge ${st.c}">${st.l}</span>
+                        <strong>EAN: ${item.ean}</strong><br>
+                        <small>Vencimento: ${item.validade} | Qtd: ${item.quantidade || 0}</small>
+                        <div class="actions">
+                            <button class="btn-edit" onclick="window.editar('${d.id}')">✏️ Editar</button>
+                            <button class="btn-del" onclick="window.deletar('${d.id}')">🗑️ Apagar</button>
+                        </div>
+                    </div>`;
+            });
+        }
+
+        // SALVAR / ATUALIZAR
+        document.getElementById('btn-salvar').addEventListener('click', async () => {
+            const ean = document.getElementById('ean').value;
+            const val = document.getElementById('validade').value;
+            const qtd = document.getElementById('qtd').value;
+
+            if(!ean || !val) return alert("Preencha os campos!");
+
+            toggleLoader(true);
+            try {
+                const dados = { ean, validade: val, quantidade: Number(qtd), timestamp: serverTimestamp(), usuario: auth.currentUser.email };
+                if(editandoId) {
+                    await updateDoc(doc(db, "estoque", editandoId), dados);
+                    editandoId = null;
+                } else {
+                    await addDoc(collection(db, "estoque"), dados);
+                }
+                resetarForm();
+                carregarHistorico();
+            } catch (e) { alert("Erro ao salvar."); }
+            finally { toggleLoader(false); }
+        });
+
+        window.editar = async (id) => {
+            toggleLoader(true);
+            const d = await getDoc(doc(db, "estoque", id));
+            const data = d.data();
+            document.getElementById('ean').value = data.ean;
+            document.getElementById('validade').value = data.validade;
+            document.getElementById('qtd').value = data.quantidade;
+            document.getElementById('ean').classList.add('modo-edicao');
+            editandoId = id;
+            document.getElementById('btn-salvar').innerText = "CONFIRMAR EDIÇÃO";
+            document.getElementById('btn-salvar').style.background = "var(--warning)";
+            window.scrollTo(0,0);
+            toggleLoader(false);
+        };
+
+        window.deletar = async (id) => {
+            if(confirm("Excluir registro?")) {
+                toggleLoader(true);
+                await deleteDoc(doc(db, "estoque", id));
+                carregarHistorico();
+                toggleLoader(false);
+            }
+        };
+
+        function resetarForm() {
+            document.getElementById('ean').value = "";
+            document.getElementById('validade').value = "";
+            document.getElementById('qtd').value = "";
+            document.getElementById('ean').classList.remove('modo-edicao');
+            document.getElementById('btn-salvar').innerText = "REGISTRAR LOTE";
+            document.getElementById('btn-salvar').style.background = "var(--accent)";
+        }
+
+        document.getElementById('btn-logout').addEventListener('click', () => signOut(auth));
+
+        // WHATSAPP REPORT
+        document.getElementById('btn-report').addEventListener('click', () => {
+            const itens = document.querySelectorAll('.history-item');
+            let m = "*NEWMARKET - RELATÓRIO TURNO*%0A%0A";
+            itens.forEach(i => {
+                const t = i.innerText.replace(/✏️ Editar|🗑️ Apagar/g, "").replace(/\n/g, "%0A");
+                m += "• " + t + "%0A---%0A";
+            });
+            window.open(`https://wa.me/?text=${m}`);
+        });
+
+    </script>
+</body>
+</html>
+
