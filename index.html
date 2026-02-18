@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Newmarket - Pro</title>
+    <title>Newmarket - Gestão de Validade</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
     
@@ -13,37 +13,24 @@
             --warning: #f59e0b; --danger: #ef4444; --success: #10b981;
             --text-main: #f1f5f9; --text-muted: #94a3b8;
         }
-
         body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: var(--text-main); margin: 0; padding-bottom: 30px; }
-        
-        /* Overlays */
-        #loader-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(15, 23, 42, 0.9); display: none; flex-direction: column;
-            align-items: center; justify-content: center; z-index: 3000; backdrop-filter: blur(5px);
-        }
+        #loader-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.9); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 3000; backdrop-filter: blur(5px); }
         .spinner { width: 40px; height: 40px; border: 4px solid rgba(56, 189, 248, 0.1); border-top: 4px solid var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-        /* Login */
         #login-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-primary); display: flex; align-items: center; justify-content: center; z-index: 2000; }
-
-        /* Componentes */
         .card { background: var(--bg-card); margin: 15px; padding: 20px; border-radius: 16px; box-shadow: 0 10px 15px rgba(0,0,0,0.5); }
         input { width: 100%; padding: 14px; margin-bottom: 12px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; font-size: 1rem; box-sizing: border-box; }
         .modo-edicao { border: 2px solid var(--warning) !important; background: #2d2a1e !important; }
-
         button { width: 100%; padding: 15px; border-radius: 8px; border: none; font-weight: 700; cursor: pointer; }
         .btn-main { background: var(--accent); color: #0f172a; }
         .btn-wa { background: #25d366; color: white; margin-top: 10px; }
-
-        /* Histórico */
-        .history-item { background: #0f172a; padding: 15px; border-radius: 10px; margin-top: 10px; border-left: 4px solid var(--accent); }
-        .badge { font-size: 0.7rem; padding: 4px 8px; border-radius: 4px; float: right; }
+        .history-item { background: #0f172a; padding: 15px; border-radius: 10px; margin-top: 10px; border-left: 4px solid var(--accent); position: relative; }
+        .badge { font-size: 0.7rem; padding: 4px 8px; border-radius: 4px; float: right; font-weight: bold; }
+        .badge-vencido { background: var(--danger); color: white; }
+        .badge-alerta { background: var(--warning); color: #000; }
+        .badge-ok { background: var(--success); color: #000; }
         .actions { display: flex; gap: 8px; margin-top: 12px; }
-        .btn-sm { flex: 1; padding: 8px; font-size: 0.75rem; color: white; background: #334155; border-radius: 5px; }
-
-        /* Modal Barcode */
+        .btn-sm { flex: 1; padding: 10px; font-size: 0.75rem; color: white; background: #334155; border-radius: 5px; }
         #modal-barcode { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:4000; display:none; flex-direction:column; align-items:center; justify-content:center; }
     </style>
 </head>
@@ -53,41 +40,41 @@
 
     <div id="login-screen">
         <div class="card" style="width: 85%; max-width: 350px;">
-            <h2 style="color: var(--accent); text-align: center;">NEWMARKET</h2>
+            <h2 style="color: var(--accent); text-align: center; margin-top:0;">NEWMARKET</h2>
             <input type="email" id="l-email" placeholder="E-mail">
             <input type="password" id="l-senha" placeholder="Senha">
-            <button class="btn-main" id="btn-entrar">ENTRAR</button>
+            <button class="btn-main" id="btn-entrar">ACESSAR</button>
         </div>
     </div>
 
-    <div id="app-content">
-        <header style="padding: 15px; text-align: center; border-bottom: 1px solid #334155;"><strong>NEWMARKET</strong></header>
+    <div id="app-content" style="display:none;">
+        <header style="padding: 15px; text-align: center; border-bottom: 1px solid #334155;"><strong>NEWMARKET PRO</strong></header>
         
         <div class="card">
             <input type="text" id="nome" placeholder="Nome do Produto">
             <input type="text" id="ean" placeholder="EAN (Código)" inputmode="numeric">
             <input type="date" id="validade">
             <input type="number" id="qtd" placeholder="Quantidade">
-            <button class="btn-main" id="btn-salvar">SALVAR REGISTRO</button>
-            <button class="btn-wa" id="btn-wa">📲 RELATÓRIO WHATSAPP</button>
+            <button class="btn-main" id="btn-salvar">REGISTRAR LOTE</button>
+            <button class="btn-wa" id="btn-wa">📲 RELATÓRIO WHATSAPP (PT-BR)</button>
         </div>
 
         <div id="lista" style="padding: 0 15px;"></div>
-        <button onclick="window.sair()" style="background:transparent; color:var(--danger); margin: 20px;">Sair do Sistema</button>
+        <button onclick="window.sair()" style="background:transparent; color:var(--danger); margin: 20px; font-size: 0.9rem;">Sair do Sistema</button>
     </div>
 
     <div id="modal-barcode" onclick="this.style.display='none'">
         <div style="background:white; padding:20px; border-radius:10px; text-align:center;" onclick="event.stopPropagation()">
-            <h3 id="m-nome" style="color:black;"></h3>
+            <h3 id="m-nome" style="color:black; margin-bottom:5px;"></h3>
             <svg id="barcode-canvas"></svg><br>
-            <button onclick="document.getElementById('modal-barcode').style.display='none'" style="background:var(--danger); color:white; margin-top:10px;">FECHAR</button>
+            <button onclick="document.getElementById('modal-barcode').style.display='none'" style="background:var(--danger); color:white; margin-top:10px; padding:10px;">FECHAR</button>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, getDocs, doc, deleteDoc, updateDoc, getDoc, query, orderBy, limit, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, getDocs, doc, deleteDoc, updateDoc, getDoc, query, orderBy, limit, serverTimestamp, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCP-R0LVH_lEmZ3ks1Z4f64HwhzxmShZpg",
@@ -103,7 +90,26 @@
         const db = getFirestore(app);
         let editandoId = null;
 
+        // Persistência Offline (Fase 6.4/6.7)
+        enableIndexedDbPersistence(db).catch(() => console.log("Offline mode active (Cache only)"));
+
         const loader = (s) => document.getElementById('loader-overlay').style.display = s ? 'flex' : 'none';
+
+        // Helper: Data pt-BR
+        const toBR = (val) => {
+            if(!val) return "S/ Data";
+            const [y, m, d] = val.split('-');
+            return `${d}/${m}/${y}`;
+        };
+
+        const getSt = (val) => {
+            const d = new Date(val);
+            const hj = new Date();
+            const diff = Math.ceil((d - hj) / (1000 * 60 * 60 * 24));
+            if (diff <= 0) return { l: 'VENCIDO', c: 'badge-vencido' };
+            if (diff <= 15) return { l: 'CRÍTICO', c: 'badge-alerta' };
+            return { l: 'OK', c: 'badge-ok' };
+        };
 
         onAuthStateChanged(auth, (u) => {
             document.getElementById('login-screen').style.display = u ? 'none' : 'flex';
@@ -117,18 +123,21 @@
         });
 
         async function carregar() {
-            const q = query(collection(db, "estoque"), orderBy("timestamp", "desc"), limit(10));
+            const q = query(collection(db, "estoque"), orderBy("timestamp", "desc"), limit(15));
             const snap = await getDocs(q);
             const lista = document.getElementById('lista');
             lista.innerHTML = "";
             snap.forEach(d => {
                 const i = d.data();
+                const s = getSt(i.validade);
                 lista.innerHTML += `
                     <div class="history-item">
-                        <strong>${i.nome || 'S/N'}</strong><br><small>${i.ean} | Venc: ${i.validade}</small>
+                        <span class="badge ${s.c}">${s.l}</span>
+                        <strong>${i.nome || 'PRODUTO S/ NOME'}</strong><br>
+                        <small>EAN: ${i.ean} | Venc: ${toBR(i.validade)}</small>
                         <div class="actions">
-                            <button class="btn-sm" onclick="window.showBC('${i.ean}','${i.nome}')">🔎 Bipar</button>
-                            <button class="btn-sm" onclick="window.ed('${d.id}')">✏️</button>
+                            <button class="btn-sm" onclick="window.showBC('${i.ean}','${i.nome}')">🔎 BIPAR</button>
+                            <button class="btn-sm" onclick="window.ed('${d.id}')">✏️ EDITAR</button>
                             <button class="btn-sm" style="background:var(--danger)" onclick="window.del('${d.id}')">🗑️</button>
                         </div>
                     </div>`;
@@ -137,44 +146,60 @@
         }
 
         document.getElementById('btn-salvar').addEventListener('click', async () => {
-            const dados = {
-                nome: document.getElementById('nome').value,
-                ean: document.getElementById('ean').value,
-                validade: document.getElementById('validade').value,
-                quantidade: Number(document.getElementById('qtd').value),
-                usuario: auth.currentUser.email,
-                timestamp: serverTimestamp()
-            };
+            const nome = document.getElementById('nome').value;
+            const ean = document.getElementById('ean').value;
+            const validade = document.getElementById('validade').value;
+            const qtd = document.getElementById('qtd').value;
+
+            if(!ean || !validade) return alert("Preencha EAN e Data!");
+
             loader(true);
-            if(editandoId) await updateDoc(doc(db, "estoque", editandoId), dados);
-            else await addDoc(collection(db, "estoque"), dados);
-            location.reload();
+            const dados = { nome, ean, validade, quantidade: Number(qtd), usuario: auth.currentUser.email, timestamp: serverTimestamp() };
+            
+            try {
+                if(editandoId) {
+                    await updateDoc(doc(db, "estoque", editandoId), dados);
+                    editandoId = null;
+                } else {
+                    await addDoc(collection(db, "estoque"), dados);
+                }
+                location.reload();
+            } catch(e) { alert("Erro ao salvar!"); loader(false); }
         });
 
         window.showBC = (ean, nome) => {
             document.getElementById('modal-barcode').style.display = 'flex';
             document.getElementById('m-nome').innerText = nome;
-            JsBarcode("#barcode-canvas", ean, { format: "CODE128", width: 2, height: 80 });
+            JsBarcode("#barcode-canvas", ean, { format: "CODE128", width: 2, height: 80, displayValue: true });
         };
 
         window.ed = async (id) => {
+            loader(true);
             const d = await getDoc(doc(db, "estoque", id));
-            const data = d.data();
-            document.getElementById('nome').value = data.nome;
-            document.getElementById('ean').value = data.ean;
-            document.getElementById('validade').value = data.validade;
-            document.getElementById('qtd').value = data.quantidade;
+            const i = d.data();
+            document.getElementById('nome').value = i.nome;
+            document.getElementById('ean').value = i.ean;
+            document.getElementById('validade').value = i.validade;
+            document.getElementById('qtd').value = i.quantidade;
             document.getElementById('ean').classList.add('modo-edicao');
             editandoId = id;
+            document.getElementById('btn-salvar').innerText = "ATUALIZAR";
+            document.getElementById('btn-salvar').style.background = "var(--warning)";
             window.scrollTo(0,0);
+            loader(false);
         };
 
-        window.del = async (id) => { if(confirm("Apagar?")) { await deleteDoc(doc(db, "estoque", id)); carregar(); }};
+        window.del = async (id) => { if(confirm("Apagar registro?")) { loader(true); await deleteDoc(doc(db, "estoque", id)); carregar(); }};
         window.sair = () => signOut(auth);
 
         document.getElementById('btn-wa').addEventListener('click', () => {
-            let m = "*RELATÓRIO NEWMARKET*%0A";
-            document.querySelectorAll('.history-item').forEach(i => m += "• " + i.innerText.replace(/🔎 Bipar|✏️|🗑️/g, "").replace(/\n/g, "%0A") + "%0A");
+            let m = "*RELATÓRIO NEWMARKET - " + new Date().toLocaleDateString('pt-BR') + "*%0A";
+            document.querySelectorAll('.history-item').forEach(i => {
+                const n = i.querySelector('strong').innerText;
+                const s = i.querySelector('small').innerText;
+                const b = i.querySelector('.badge').innerText;
+                m += `%0A📦 *${n}*%0A🗓️ ${s}%0A⚠️ Status: ${b}%0A---`;
+            });
             window.open(`https://wa.me/?text=${m}`);
         });
     </script>
