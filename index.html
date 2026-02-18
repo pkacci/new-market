@@ -1,310 +1,258 @@
 <!DOCTYPE html>
 <html lang="pt-br">
-    <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Newmarket - Pro Scanner</title>
-    
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#0f172a">
-    
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    ...
-    </head>
-    
-    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2/dist/quagga.min.js"></script>
-    
-    <style>
-        :root {
-            --bg-primary: #0f172a; --bg-card: #1e293b; --accent: #38bdf8;
-            --warning: #f59e0b; --danger: #ef4444; --success: #10b981;
-            --text-main: #f1f5f9;
-        }
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NewMarket Pro v2</title>
 
-        body { 
-            font-family: 'Inter', sans-serif; background: var(--bg-primary); 
-            color: var(--text-main); margin: 0; padding-bottom: 30px;
-            overscroll-behavior-y: contain; 
-        }
-        
-        /* Previne o flash de login */
-        #loader-overlay { 
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background: var(--bg-primary); display: flex; flex-direction: column; 
-            align-items: center; justify-content: center; z-index: 5000; 
-        }
-        .spinner { width: 40px; height: 40px; border: 4px solid rgba(56, 189, 248, 0.1); border-top: 4px solid var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        
-        #login-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-primary); display: none; align-items: center; justify-content: center; z-index: 2000; }
-        #app-content { display: none; }
+<style>
+:root{
+--bg:#0f172a;
+--card:#1e293b;
+--accent:#38bdf8;
+--danger:#ef4444;
+--warning:#f59e0b;
+--success:#10b981;
+--text:#f1f5f9;
+}
 
-        .card { background: var(--bg-card); margin: 15px; padding: 20px; border-radius: 16px; box-shadow: 0 10px 15px rgba(0,0,0,0.5); }
-        input { width: 100%; padding: 14px; margin-bottom: 12px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; font-size: 16px; box-sizing: border-box; outline: none; }
-        .modo-edicao { border: 2px solid var(--warning) !important; background: #2d2a1e !important; }
-        
-        button { width: 100%; padding: 15px; border-radius: 8px; border: none; font-weight: 700; cursor: pointer; transition: 0.2s; }
-        .btn-main { background: var(--accent); color: #0f172a; }
-        .btn-scan { background: #334155; color: white; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; }
-        .btn-wa { background: #25d366; color: white; margin-top: 10px; }
-        
-        /* Container do Scanner */
-        #scanner-visual { display: none; width: 100%; height: 200px; background: #000; border-radius: 12px; overflow: hidden; margin-bottom: 15px; position: relative; }
-        #scanner-visual video { width: 100%; height: 100%; object-fit: cover; }
-        .laser { position: absolute; top: 50%; left: 0; width: 100%; height: 2px; background: red; box-shadow: 0 0 8px red; z-index: 10; animation: scanAnim 2s infinite; }
-        @keyframes scanAnim { 0%, 100% { top: 20%; } 50% { top: 80%; } }
+body{
+margin:0;
+font-family:Arial;
+background:var(--bg);
+color:var(--text);
+}
 
-        .history-item { background: #0f172a; padding: 15px; border-radius: 10px; margin-top: 10px; border-left: 4px solid var(--accent); }
-        .badge { font-size: 0.7rem; padding: 4px 8px; border-radius: 4px; float: right; font-weight: bold; }
-        .badge-vencido { background: var(--danger); color: white; }
-        .badge-alerta { background: var(--warning); color: #000; }
-        .badge-ok { background: var(--success); color: #000; }
-        
-        .actions { display: flex; gap: 8px; margin-top: 12px; }
-        .btn-sm { flex: 1; padding: 10px; font-size: 0.75rem; color: white; background: #334155; border-radius: 5px; }
-        #modal-barcode { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:4000; display:none; flex-direction:column; align-items:center; justify-content:center; }
-    </style>
+.card{
+background:var(--card);
+margin:15px;
+padding:15px;
+border-radius:12px;
+}
+
+input,button{
+width:100%;
+padding:12px;
+margin:6px 0;
+border-radius:8px;
+border:none;
+}
+
+button{font-weight:bold;cursor:pointer;}
+
+.btn-main{background:var(--accent);}
+.btn-warning{background:var(--warning);}
+.btn-danger{background:var(--danger);color:#fff;}
+
+.history-item{
+background:#0f172a;
+padding:10px;
+margin-top:8px;
+border-left:4px solid var(--accent);
+border-radius:8px;
+}
+
+.badge{
+float:right;
+padding:3px 8px;
+border-radius:4px;
+font-size:0.7rem;
+}
+
+.badge-danger{background:var(--danger);}
+.badge-warning{background:var(--warning);color:#000;}
+.badge-ok{background:var(--success);color:#000;}
+
+#loader{
+position:fixed;
+top:0;left:0;
+width:100%;height:100%;
+background:#000;
+display:flex;
+align-items:center;
+justify-content:center;
+z-index:9999;
+}
+
+</style>
 </head>
 <body>
 
-    <div id="loader-overlay"><div class="spinner"></div><p style="color: var(--accent); margin-top:10px;">A validar acesso...</p></div>
+<div id="loader">Carregando...</div>
 
-    <div id="login-screen">
-        <div class="card" style="width: 85%; max-width: 350px;">
-            <h2 style="color: var(--accent); text-align: center; margin-top:0;">NEWMARKET PRO</h2>
-            <input type="email" id="l-email" placeholder="E-mail">
-            <input type="password" id="l-senha" placeholder="Senha">
-            <button class="btn-main" id="btn-entrar">ENTRAR</button>
-        </div>
-    </div>
+<div class="card">
+<h3>📊 Dashboard</h3>
+Total Lotes: <strong id="d-lotes">0</strong><br>
+Total Unidades: <strong id="d-unidades">0</strong><br>
+Vencidos: <strong id="d-vencidos">0</strong><br>
+Críticos: <strong id="d-criticos">0</strong>
+</div>
 
-    <div id="app-content">
-        <header style="padding: 15px; text-align: center; border-bottom: 1px solid #334155;"><strong>NEWMARKET PRO</strong></header>
-        
-        <div class="card">
-            <div id="scanner-visual"><div class="laser"></div></div>
-            <button type="button" class="btn-scan" id="btn-scan">📷 LER CÓDIGO DE BARRAS</button>
+<div class="card">
+<h3>📦 Cadastro</h3>
+<input id="nome" placeholder="Nome">
+<input id="ean" placeholder="EAN">
+<input type="date" id="validade">
+<input type="number" id="qtd" placeholder="Quantidade">
+<button class="btn-main" id="salvar">Guardar Lote</button>
+<button class="btn-warning" id="saida">Dar Saída (FEFO)</button>
+<button id="historicoBtn">Ver Histórico</button>
+</div>
 
-            <input type="text" id="nome" placeholder="Nome do Produto">
-            <input type="text" id="ean" placeholder="EAN (Código)" inputmode="numeric">
-            <input type="date" id="validade">
-            <input type="number" id="qtd" placeholder="Quantidade">
-            <button class="btn-main" id="btn-salvar">GUARDAR LOTE</button>
-            <button class="btn-wa" id="btn-wa">📲 RELATÓRIO WHATSAPP</button>
-        </div>
+<div class="card">
+<h3>📋 Estoque</h3>
+<div id="lista"></div>
+</div>
 
-        <div id="lista" style="padding: 0 15px;"></div>
-        <button onclick="window.sair()" style="background:transparent; color:var(--danger); margin: 20px; font-size: 0.9rem;">Terminar Sessão</button>
-    </div>
+<div id="modalHistorico" style="display:none;" class="card">
+<h3>📜 Movimentações</h3>
+<div id="movList"></div>
+<button onclick="modalHistorico.style.display='none'">Fechar</button>
+</div>
 
-    <div id="modal-barcode" onclick="this.style.display='none'">
-        <div style="background:white; padding:20px; border-radius:10px; text-align:center;" onclick="event.stopPropagation()">
-            <h3 id="m-nome" style="color:black; margin-bottom:5px;"></h3>
-            <svg id="barcode-canvas"></svg><br>
-            <button onclick="document.getElementById('modal-barcode').style.display='none'" style="background:var(--danger); color:white; margin-top:10px; padding:10px;">FECHAR</button>
-        </div>
-    </div>
-    <script type="module">
+<script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { 
-    getFirestore, collection, addDoc, getDocs, doc, deleteDoc, updateDoc, getDoc, 
-    query, orderBy, limit, serverTimestamp, enableIndexedDbPersistence 
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, doc, deleteDoc, updateDoc, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
-    apiKey: "AIzaSyCP-R0LVH_lEmZ3ks1Z4f64HwhzxmShZpg",
-    authDomain: "new-market-d4c5a.firebaseapp.com",
-    projectId: "new-market-d4c5a",
-    storageBucket: "new-market-d4c5a.firebasestorage.app",
-    messagingSenderId: "261011659066",
-    appId: "1:261011659066:web:36d66d6125b8db65621803"
+apiKey: "SUA_KEY",
+authDomain: "SEU_DOMINIO",
+projectId: "SEU_PROJECT_ID"
 };
 
 const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
 const db = getFirestore(app);
-let editandoId = null;
 
-enableIndexedDbPersistence(db).catch(() => console.log("Offline mode ON"));
+const loader = (s)=>document.getElementById("loader").style.display=s?"flex":"none";
 
-const loader = (s) => document.getElementById('loader-overlay').style.display = s ? 'flex' : 'none';
-const toBR = (v) => { if(!v) return "S/ Data"; const [y,m,d]=v.split('-'); return `${d}/${m}/${y}`; };
+async function carregar(){
 
-// --- SCANNER ---
-let scannerAtivo = false;
-window.toggleScanner = () => {
-    if(scannerAtivo) {
-        Quagga.stop();
-        document.getElementById('scanner-visual').style.display = 'none';
-        scannerAtivo = false;
-        return;
-    }
+loader(true);
 
-    document.getElementById('scanner-visual').style.display = 'block';
-    Quagga.init({
-        inputStream: { name: "Live", type: "LiveStream", target: document.getElementById('scanner-visual'), constraints: { facingMode: "environment" } },
-        decoder: { readers: ["ean_reader", "code_128_reader", "ean_8_reader"] }
-    }, (err) => {
-        if(err) { alert("Câmara indisponível"); return; }
-        Quagga.start();
-        scannerAtivo = true;
-    });
+const snap = await getDocs(collection(db,"estoque"));
 
-    Quagga.onDetected((res) => {
-        document.getElementById('ean').value = res.codeResult.code;
-        if(navigator.vibrate) navigator.vibrate(100);
-        window.toggleScanner();
-    });
-};
-document.getElementById('btn-scan').addEventListener('click', window.toggleScanner);
+let totalLotes=0,totalUnidades=0,vencidos=0,criticos=0;
 
-// --- AUTENTICAÇÃO ---
-onAuthStateChanged(auth, (u) => {
-    loader(false);
-    if(u) {
-        document.getElementById('login-screen').style.display = 'none';
-        document.getElementById('app-content').style.display = 'block';
-        carregar();
-        const eanUrl = new URLSearchParams(window.location.search).get('ean');
-        if(eanUrl) setTimeout(() => window.showBC(eanUrl, "Consulta"), 1000);
-    } else {
-        document.getElementById('login-screen').style.display = 'flex';
-        document.getElementById('app-content').style.display = 'none';
-    }
+const agrupado={};
+
+snap.forEach(d=>{
+totalLotes++;
+const i=d.data();
+totalUnidades+=i.quantidade;
+
+const diff=Math.ceil((new Date(i.validade)-new Date())/86400000);
+
+if(diff<=0)vencidos++;
+else if(diff<=15)criticos++;
+
+if(!agrupado[i.ean]){
+agrupado[i.ean]={nome:i.nome,total:0,lotes:[]};
+}
+agrupado[i.ean].total+=i.quantidade;
+agrupado[i.ean].lotes.push({id:d.id,...i});
 });
 
-document.getElementById('btn-entrar').addEventListener('click', () => {
-    loader(true);
-    signInWithEmailAndPassword(auth, document.getElementById('l-email').value, document.getElementById('l-senha').value)
-        .catch(() => { loader(false); alert("Erro!"); });
-});
+document.getElementById("d-lotes").innerText=totalLotes;
+document.getElementById("d-unidades").innerText=totalUnidades;
+document.getElementById("d-vencidos").innerText=vencidos;
+document.getElementById("d-criticos").innerText=criticos;
 
-// --- CARREGAR LISTA ---
-async function carregar() {
-    loader(true);
-    try {
-        const q = query(collection(db, "estoque"), orderBy("timestamp", "desc"), limit(20));
-        const snap = await getDocs(q);
-        const lista = document.getElementById('lista');
-        lista.innerHTML = "";
-        snap.forEach(d => {
-            const i = d.data();
-            const dV = new Date(i.validade); const hj = new Date();
-            const diff = Math.ceil((dV - hj) / 86400000);
-            let s = {l:'OK', c:'badge-ok'};
-            if(diff <= 0) s = {l:'VENCIDO', c:'badge-vencido'};
-            else if(diff <= 15) s = {l:'CRÍTICO', c:'badge-alerta'};
+if(Notification.permission==="default")Notification.requestPermission();
 
-            lista.innerHTML += `
-                <div class="history-item">
-                    <span class="badge ${s.c}">${s.l}</span>
-                    <strong>${i.nome || 'S/ NOME'}</strong><br>
-                    <small>EAN: ${i.ean} | Venc: ${toBR(i.validade)}</small>
-                    <div class="actions">
-                        <button class="btn-sm" onclick="window.showBC('${i.ean}','${i.nome}')">🔎 BIPAR</button>
-                        <button class="btn-sm" onclick="window.ed('${d.id}')">✏️ EDITAR</button>
-                        <button class="btn-sm" style="background:var(--danger)" onclick="window.del('${d.id}')">🗑️</button>
-                    </div>
-                </div>`;
-        });
-    } catch(err) {
-        alert("Erro ao carregar produtos: " + err.message);
-    } finally {
-        loader(false);
-    }
+if(Notification.permission==="granted"){
+if(vencidos>0){
+new Notification("⚠ Produtos vencidos",{body:`${vencidos} produtos vencidos.`});
+}
 }
 
-// --- SALVAR / ATUALIZAR ---
-document.getElementById('btn-salvar').addEventListener('click', async () => {
-    const d = { 
-        nome: document.getElementById('nome').value, 
-        ean: document.getElementById('ean').value, 
-        validade: document.getElementById('validade').value, 
-        quantidade: Number(document.getElementById('qtd').value),
-        timestamp: serverTimestamp() 
-    };
-    if(!d.ean || !d.validade) return alert("Dados em falta!");
-    loader(true);
-    try {
-        if(editandoId) await updateDoc(doc(db, "estoque", editandoId), d);
-        else await addDoc(collection(db, "estoque"), d);
-        editandoId = null;
-        document.getElementById('btn-salvar').innerText = "GUARDAR LOTE";
-        await carregar();
-        // limpa inputs
-        document.getElementById('nome').value = '';
-        document.getElementById('ean').value = '';
-        document.getElementById('validade').value = '';
-        document.getElementById('qtd').value = '';
-        document.getElementById('ean').classList.remove('modo-edicao');
-    } catch(err) {
-        alert("Erro ao salvar: " + err.message);
-    } finally {
-        loader(false);
-    }
+const lista=document.getElementById("lista");
+lista.innerHTML="";
+
+for(const ean in agrupado){
+
+const p=agrupado[ean];
+
+lista.innerHTML+=`
+<div class="history-item">
+<strong>${p.nome}</strong> (${p.total} un)
+<button onclick="saidaFEFO('${ean}')">Saída</button>
+</div>
+`;
+}
+
+loader(false);
+}
+
+document.getElementById("salvar").onclick=async()=>{
+loader(true);
+await addDoc(collection(db,"estoque"),{
+nome:nome.value,
+ean:ean.value,
+validade:validade.value,
+quantidade:Number(qtd.value),
+timestamp:serverTimestamp()
 });
-
-// --- MOSTRAR CÓDIGO DE BARRAS ---
-window.showBC = (ean, nome) => {
-    document.getElementById('modal-barcode').style.display = 'flex';
-    document.getElementById('m-nome').innerText = nome;
-    JsBarcode("#barcode-canvas", ean, { format: "CODE128", width: 2, height: 80, displayValue: true });
+carregar();
 };
 
-// --- EDITAR PRODUTO ---
-window.ed = async (id) => {
-    loader(true);
-    try {
-        const d = await getDoc(doc(db, "estoque", id));
-        if(!d.exists()) throw new Error("Produto não encontrado");
-        const i = d.data();
-        document.getElementById('nome').value = i.nome;
-        document.getElementById('ean').value = i.ean;
-        document.getElementById('validade').value = i.validade;
-        document.getElementById('qtd').value = i.quantidade;
-        document.getElementById('ean').classList.add('modo-edicao');
-        editandoId = id;
-        document.getElementById('btn-salvar').innerText = "ATUALIZAR";
-        window.scrollTo({top:0, behavior:'smooth'});
-    } catch(err) {
-        alert("Erro ao carregar o produto: " + err.message);
-    } finally {
-        loader(false);
-    }
-};
+async function saidaFEFO(ean){
 
-// --- EXCLUIR PRODUTO ---
-window.del = async (id) => {
-    if (!confirm("Apagar?")) return;
-    loader(true);
-    try {
-        await deleteDoc(doc(db, "estoque", id));
-        await carregar();
-    } catch(err) {
-        alert("Erro ao apagar o produto: " + err.message);
-    } finally {
-        loader(false);
-    }
-};
+const quantidade=Number(prompt("Quantidade:"));
+if(!quantidade)return;
 
-// --- LOGOUT ---
-window.sair = () => signOut(auth);
+loader(true);
 
-// --- RELATÓRIO WHATSAPP ---
-document.getElementById('btn-wa').addEventListener('click', () => {
-    const itens = document.querySelectorAll('.history-item');
-    let m = `*📊 NEWMARKET PRO - ${new Date().toLocaleDateString('pt-BR')}*%0A`;
-    m += `✅ *Total: ${itens.length} itens*%0A----------------------------%0A`;
-    itens.forEach(i => {
-        const n = i.querySelector('strong').innerText;
-        const s = i.querySelector('small').innerText;
-        const ean = s.match(/EAN: (\d+)/)?.[1] || "";
-        m += `📦 *${n}*%0A🔢 ${s}%0A🔗 Ver: https://newmarket.pkacci.com.br/?ean=${ean}%0A----------------------------%0A`;
-    });
-    window.open(`https://wa.me/?text=${m}`);
+const q=query(collection(db,"estoque"),orderBy("validade","asc"));
+const snap=await getDocs(q);
+
+let restante=quantidade;
+
+for(const d of snap.docs){
+const i=d.data();
+if(i.ean!==ean)continue;
+if(restante<=0)break;
+
+if(i.quantidade<=restante){
+restante-=i.quantidade;
+await deleteDoc(doc(db,"estoque",d.id));
+}else{
+await updateDoc(doc(db,"estoque",d.id),{
+quantidade:i.quantidade-restante
 });
-    </script>
+restante=0;
+}
+
+await addDoc(collection(db,"movimentacoes"),{
+tipo:"saida",
+ean:i.ean,
+nome:i.nome,
+quantidade:quantidade,
+timestamp:serverTimestamp()
+});
+}
+
+if(restante>0)alert("Estoque insuficiente");
+
+carregar();
+}
+
+document.getElementById("saida").onclick=()=>saidaFEFO(ean.value);
+
+document.getElementById("historicoBtn").onclick=async()=>{
+modalHistorico.style.display="block";
+const snap=await getDocs(query(collection(db,"movimentacoes"),orderBy("timestamp","desc")));
+movList.innerHTML="";
+snap.forEach(d=>{
+const m=d.data();
+movList.innerHTML+=`
+<div class="history-item">
+${m.tipo.toUpperCase()} - ${m.nome} - ${m.quantidade}
+</div>`;
+});
+};
+
+carregar();
+
+</script>
 </body>
 </html>
