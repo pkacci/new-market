@@ -3,28 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Newmarket - Pro</title>
+    <title>Newmarket - Pro Scanner</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2/dist/quagga.min.js"></script>
     
     <style>
         :root {
             --bg-primary: #0f172a; --bg-card: #1e293b; --accent: #38bdf8;
             --warning: #f59e0b; --danger: #ef4444; --success: #10b981;
-            --text-main: #f1f5f9; --text-muted: #94a3b8;
+            --text-main: #f1f5f9;
         }
 
-        /* Impede o pull-to-refresh acidental e define o fundo */
         body { 
-            font-family: 'Inter', sans-serif; 
-            background: var(--bg-primary); 
-            color: var(--text-main); 
-            margin: 0; 
-            padding-bottom: 30px;
+            font-family: 'Inter', sans-serif; background: var(--bg-primary); 
+            color: var(--text-main); margin: 0; padding-bottom: 30px;
             overscroll-behavior-y: contain; 
         }
         
-        /* Loader Inicial (Inicia visível para evitar o piscar do login) */
+        /* Previne o flash de login */
         #loader-overlay { 
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             background: var(--bg-primary); display: flex; flex-direction: column; 
@@ -33,20 +31,24 @@
         .spinner { width: 40px; height: 40px; border: 4px solid rgba(56, 189, 248, 0.1); border-top: 4px solid var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
-        /* Telas (Iniciam ocultas) */
         #login-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-primary); display: none; align-items: center; justify-content: center; z-index: 2000; }
         #app-content { display: none; }
 
         .card { background: var(--bg-card); margin: 15px; padding: 20px; border-radius: 16px; box-shadow: 0 10px 15px rgba(0,0,0,0.5); }
         input { width: 100%; padding: 14px; margin-bottom: 12px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; font-size: 16px; box-sizing: border-box; outline: none; }
-        input:focus { border-color: var(--accent); }
         .modo-edicao { border: 2px solid var(--warning) !important; background: #2d2a1e !important; }
         
         button { width: 100%; padding: 15px; border-radius: 8px; border: none; font-weight: 700; cursor: pointer; transition: 0.2s; }
-        button:active { opacity: 0.8; transform: scale(0.98); }
         .btn-main { background: var(--accent); color: #0f172a; }
+        .btn-scan { background: #334155; color: white; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; }
         .btn-wa { background: #25d366; color: white; margin-top: 10px; }
         
+        /* Container do Scanner */
+        #scanner-visual { display: none; width: 100%; height: 200px; background: #000; border-radius: 12px; overflow: hidden; margin-bottom: 15px; position: relative; }
+        #scanner-visual video { width: 100%; height: 100%; object-fit: cover; }
+        .laser { position: absolute; top: 50%; left: 0; width: 100%; height: 2px; background: red; box-shadow: 0 0 8px red; z-index: 10; animation: scanAnim 2s infinite; }
+        @keyframes scanAnim { 0%, 100% { top: 20%; } 50% { top: 80%; } }
+
         .history-item { background: #0f172a; padding: 15px; border-radius: 10px; margin-top: 10px; border-left: 4px solid var(--accent); }
         .badge { font-size: 0.7rem; padding: 4px 8px; border-radius: 4px; float: right; font-weight: bold; }
         .badge-vencido { background: var(--danger); color: white; }
@@ -55,39 +57,39 @@
         
         .actions { display: flex; gap: 8px; margin-top: 12px; }
         .btn-sm { flex: 1; padding: 10px; font-size: 0.75rem; color: white; background: #334155; border-radius: 5px; }
-        
         #modal-barcode { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:4000; display:none; flex-direction:column; align-items:center; justify-content:center; }
     </style>
 </head>
 <body>
 
-    <div id="loader-overlay"><div class="spinner"></div><p style="color: var(--accent); margin-top:10px;">A carregar Newmarket...</p></div>
+    <div id="loader-overlay"><div class="spinner"></div><p style="color: var(--accent); margin-top:10px;">A validar acesso...</p></div>
 
     <div id="login-screen">
         <div class="card" style="width: 85%; max-width: 350px;">
             <h2 style="color: var(--accent); text-align: center; margin-top:0;">NEWMARKET PRO</h2>
             <input type="email" id="l-email" placeholder="E-mail">
             <input type="password" id="l-senha" placeholder="Senha">
-            <button class="btn-main" id="btn-entrar">ACESSAR</button>
+            <button class="btn-main" id="btn-entrar">ENTRAR</button>
         </div>
     </div>
 
     <div id="app-content">
-        <header style="padding: 15px; text-align: center; border-bottom: 1px solid #334155;">
-            <strong>NEWMARKET PRO</strong>
-        </header>
+        <header style="padding: 15px; text-align: center; border-bottom: 1px solid #334155;"><strong>NEWMARKET PRO</strong></header>
         
         <div class="card">
+            <div id="scanner-visual"><div class="laser"></div></div>
+            <button type="button" class="btn-scan" id="btn-scan">📷 LER CÓDIGO DE BARRAS</button>
+
             <input type="text" id="nome" placeholder="Nome do Produto">
             <input type="text" id="ean" placeholder="EAN (Código)" inputmode="numeric">
             <input type="date" id="validade">
             <input type="number" id="qtd" placeholder="Quantidade">
-            <button class="btn-main" id="btn-salvar">REGISTRAR LOTE</button>
-            <button class="btn-wa" id="btn-wa">📲 ENVIAR RELATÓRIO</button>
+            <button class="btn-main" id="btn-salvar">GUARDAR LOTE</button>
+            <button class="btn-wa" id="btn-wa">📲 RELATÓRIO WHATSAPP</button>
         </div>
 
         <div id="lista" style="padding: 0 15px;"></div>
-        <button onclick="window.sair()" style="background:transparent; color:var(--danger); margin: 20px; font-size: 0.9rem;">Sair do Sistema</button>
+        <button onclick="window.sair()" style="background:transparent; color:var(--danger); margin: 20px; font-size: 0.9rem;">Terminar Sessão</button>
     </div>
 
     <div id="modal-barcode" onclick="this.style.display='none'">
@@ -117,32 +119,47 @@
         const db = getFirestore(app);
         let editandoId = null;
 
-        enableIndexedDbPersistence(db).catch(() => console.log("Modo offline ativo"));
+        enableIndexedDbPersistence(db).catch(() => console.log("Offline mode ON"));
 
         const loader = (s) => document.getElementById('loader-overlay').style.display = s ? 'flex' : 'none';
-        const toBR = (val) => { if(!val) return "S/ Data"; const [y, m, d] = val.split('-'); return `${d}/${m}/${y}`; };
-        
-        const getSt = (val) => {
-            const d = new Date(val); const hj = new Date();
-            const diff = Math.ceil((d - hj) / (1000 * 60 * 60 * 24));
-            if (diff <= 0) return { l: 'VENCIDO', c: 'badge-vencido' };
-            if (diff <= 15) return { l: 'CRÍTICO', c: 'badge-alerta' };
-            return { l: 'OK', c: 'badge-ok' };
-        };
+        const toBR = (v) => { if(!v) return "S/ Data"; const [y,m,d]=v.split('-'); return `${d}/${m}/${y}`; };
 
-        // --- MONITOR DE SESSÃO CORRIGIDO ---
+        // --- LÓGICA DO SCANNER (CÂMARA) ---
+        let scannerAtivo = false;
+        window.toggleScanner = () => {
+            if(scannerAtivo) {
+                Quagga.stop();
+                document.getElementById('scanner-visual').style.display = 'none';
+                scannerAtivo = false;
+                return;
+            }
+
+            document.getElementById('scanner-visual').style.display = 'block';
+            Quagga.init({
+                inputStream: { name: "Live", type: "LiveStream", target: document.getElementById('scanner-visual'), constraints: { facingMode: "environment" } },
+                decoder: { readers: ["ean_reader", "code_128_reader", "ean_8_reader"] }
+            }, (err) => {
+                if(err) { alert("Câmara indisponível"); return; }
+                Quagga.start();
+                scannerAtivo = true;
+            });
+
+            Quagga.onDetected((res) => {
+                document.getElementById('ean').value = res.codeResult.code;
+                if(navigator.vibrate) navigator.vibrate(100);
+                window.toggleScanner();
+            });
+        };
+        document.getElementById('btn-scan').addEventListener('click', window.toggleScanner);
+
         onAuthStateChanged(auth, (u) => {
-            loader(false); // Remove o splash screen inicial
-            
+            loader(false);
             if(u) {
                 document.getElementById('login-screen').style.display = 'none';
                 document.getElementById('app-content').style.display = 'block';
                 carregar();
-                
-                // Abre código automaticamente se vier via link
-                const urlParams = new URLSearchParams(window.location.search);
-                const eanUrl = urlParams.get('ean');
-                if(eanUrl) setTimeout(() => window.showBC(eanUrl, "Consulta Rápida"), 1000);
+                const eanUrl = new URLSearchParams(window.location.search).get('ean');
+                if(eanUrl) setTimeout(() => window.showBC(eanUrl, "Consulta"), 1000);
             } else {
                 document.getElementById('login-screen').style.display = 'flex';
                 document.getElementById('app-content').style.display = 'none';
@@ -151,9 +168,7 @@
 
         document.getElementById('btn-entrar').addEventListener('click', () => {
             loader(true);
-            const email = document.getElementById('l-email').value;
-            const senha = document.getElementById('l-senha').value;
-            signInWithEmailAndPassword(auth, email, senha).catch(e => { loader(false); alert("Dados inválidos."); });
+            signInWithEmailAndPassword(auth, document.getElementById('l-email').value, document.getElementById('l-senha').value).catch(() => { loader(false); alert("Erro!"); });
         });
 
         async function carregar() {
@@ -162,11 +177,17 @@
             const lista = document.getElementById('lista');
             lista.innerHTML = "";
             snap.forEach(d => {
-                const i = d.data(); const s = getSt(i.validade);
+                const i = d.data();
+                const dV = new Date(i.validade); const hj = new Date();
+                const diff = Math.ceil((dV - hj) / (86400000));
+                let s = {l:'OK', c:'badge-ok'};
+                if(diff <= 0) s = {l:'VENCIDO', c:'badge-vencido'};
+                else if(diff <= 15) s = {l:'CRÍTICO', c:'badge-alerta'};
+
                 lista.innerHTML += `
                     <div class="history-item">
                         <span class="badge ${s.c}">${s.l}</span>
-                        <strong>${i.nome || 'PRODUTO S/ NOME'}</strong><br>
+                        <strong>${i.nome || 'S/ NOME'}</strong><br>
                         <small>EAN: ${i.ean} | Venc: ${toBR(i.validade)}</small>
                         <div class="actions">
                             <button class="btn-sm" onclick="window.showBC('${i.ean}','${i.nome}')">🔎 BIPAR</button>
@@ -178,18 +199,18 @@
         }
 
         document.getElementById('btn-salvar').addEventListener('click', async () => {
-            const n = document.getElementById('nome').value;
-            const e = document.getElementById('ean').value;
-            const v = document.getElementById('validade').value;
-            const q = document.getElementById('qtd').value;
-            if(!e || !v) return alert("Preencha EAN e Data!");
+            const d = { 
+                nome: document.getElementById('nome').value, 
+                ean: document.getElementById('ean').value, 
+                validade: document.getElementById('validade').value, 
+                quantidade: Number(document.getElementById('qtd').value),
+                timestamp: serverTimestamp() 
+            };
+            if(!d.ean || !d.validade) return alert("Dados em falta!");
             loader(true);
-            const d = { nome: n, ean: e, validade: v, quantidade: Number(q), usuario: auth.currentUser.email, timestamp: serverTimestamp() };
-            try {
-                if(editandoId) await updateDoc(doc(db, "estoque", editandoId), d);
-                else await addDoc(collection(db, "estoque"), d);
-                location.reload();
-            } catch(err) { alert("Erro ao guardar."); loader(false); }
+            if(editandoId) await updateDoc(doc(db, "estoque", editandoId), d);
+            else await addDoc(collection(db, "estoque"), d);
+            location.reload();
         });
 
         window.showBC = (ean, nome) => {
@@ -204,24 +225,21 @@
             document.getElementById('validade').value = i.validade; document.getElementById('qtd').value = i.quantidade;
             document.getElementById('ean').classList.add('modo-edicao'); editandoId = id;
             document.getElementById('btn-salvar').innerText = "ATUALIZAR";
-            window.scrollTo({top: 0, behavior: 'smooth'}); loader(false);
+            window.scrollTo({top:0, behavior:'smooth'}); loader(false);
         };
 
-        window.del = async (id) => { if(confirm("Apagar registro?")) { loader(true); await deleteDoc(doc(db, "estoque", id)); carregar(); loader(false); }};
+        window.del = async (id) => { if(confirm("Apagar?")) { await deleteDoc(doc(db, "estoque", id)); carregar(); }};
         window.sair = () => signOut(auth);
 
         document.getElementById('btn-wa').addEventListener('click', () => {
             const itens = document.querySelectorAll('.history-item');
             let m = `*📊 NEWMARKET PRO - ${new Date().toLocaleDateString('pt-BR')}*%0A`;
-            m += `✅ *Total de Itens: ${itens.length}*%0A----------------------------%0A`;
+            m += `✅ *Total: ${itens.length} itens*%0A----------------------------%0A`;
             itens.forEach(i => {
                 const n = i.querySelector('strong').innerText;
                 const s = i.querySelector('small').innerText;
-                const b = i.querySelector('.badge').innerText;
                 const ean = s.match(/EAN: (\d+)/)?.[1] || "";
-                m += `🛍️ *${n}*%0A🔢 ${s}%0A⚠️ Status: ${b}%0A`;
-                if(ean) m += `🔗 Bipar: https://newmarket.pkacci.com.br/?ean=${ean}%0A`;
-                m += "----------------------------%0A";
+                m += `📦 *${n}*%0A🔢 ${s}%0A🔗 Ver: https://newmarket.pkacci.com.br/?ean=${ean}%0A----------------------------%0A`;
             });
             window.open(`https://wa.me/?text=${m}`);
         });
