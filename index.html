@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Newmarket - Gestão de Validade</title>
+    <title>Newmarket - Pro</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
     
@@ -14,23 +14,30 @@
             --text-main: #f1f5f9; --text-muted: #94a3b8;
         }
         body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: var(--text-main); margin: 0; padding-bottom: 30px; }
+        
         #loader-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.9); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 3000; backdrop-filter: blur(5px); }
         .spinner { width: 40px; height: 40px; border: 4px solid rgba(56, 189, 248, 0.1); border-top: 4px solid var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
         #login-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-primary); display: flex; align-items: center; justify-content: center; z-index: 2000; }
+        
         .card { background: var(--bg-card); margin: 15px; padding: 20px; border-radius: 16px; box-shadow: 0 10px 15px rgba(0,0,0,0.5); }
-        input { width: 100%; padding: 14px; margin-bottom: 12px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; font-size: 1rem; box-sizing: border-box; }
+        input { width: 100%; padding: 14px; margin-bottom: 12px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; font-size: 16px; box-sizing: border-box; }
         .modo-edicao { border: 2px solid var(--warning) !important; background: #2d2a1e !important; }
+        
         button { width: 100%; padding: 15px; border-radius: 8px; border: none; font-weight: 700; cursor: pointer; }
         .btn-main { background: var(--accent); color: #0f172a; }
         .btn-wa { background: #25d366; color: white; margin-top: 10px; }
-        .history-item { background: #0f172a; padding: 15px; border-radius: 10px; margin-top: 10px; border-left: 4px solid var(--accent); position: relative; }
+        
+        .history-item { background: #0f172a; padding: 15px; border-radius: 10px; margin-top: 10px; border-left: 4px solid var(--accent); }
         .badge { font-size: 0.7rem; padding: 4px 8px; border-radius: 4px; float: right; font-weight: bold; }
         .badge-vencido { background: var(--danger); color: white; }
         .badge-alerta { background: var(--warning); color: #000; }
         .badge-ok { background: var(--success); color: #000; }
+        
         .actions { display: flex; gap: 8px; margin-top: 12px; }
         .btn-sm { flex: 1; padding: 10px; font-size: 0.75rem; color: white; background: #334155; border-radius: 5px; }
+        
         #modal-barcode { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:4000; display:none; flex-direction:column; align-items:center; justify-content:center; }
     </style>
 </head>
@@ -40,7 +47,7 @@
 
     <div id="login-screen">
         <div class="card" style="width: 85%; max-width: 350px;">
-            <h2 style="color: var(--accent); text-align: center; margin-top:0;">NEWMARKET</h2>
+            <h2 style="color: var(--accent); text-align: center; margin-top:0;">NEWMARKET PRO</h2>
             <input type="email" id="l-email" placeholder="E-mail">
             <input type="password" id="l-senha" placeholder="Senha">
             <button class="btn-main" id="btn-entrar">ACESSAR</button>
@@ -48,7 +55,9 @@
     </div>
 
     <div id="app-content" style="display:none;">
-        <header style="padding: 15px; text-align: center; border-bottom: 1px solid #334155;"><strong>NEWMARKET PRO</strong></header>
+        <header style="padding: 15px; text-align: center; border-bottom: 1px solid #334155;">
+            <strong>NEWMARKET PRO</strong>
+        </header>
         
         <div class="card">
             <input type="text" id="nome" placeholder="Nome do Produto">
@@ -56,7 +65,7 @@
             <input type="date" id="validade">
             <input type="number" id="qtd" placeholder="Quantidade">
             <button class="btn-main" id="btn-salvar">REGISTRAR LOTE</button>
-            <button class="btn-wa" id="btn-wa">📲 RELATÓRIO WHATSAPP (PT-BR)</button>
+            <button class="btn-wa" id="btn-wa">📲 ENVIAR RELATÓRIO</button>
         </div>
 
         <div id="lista" style="padding: 0 15px;"></div>
@@ -90,21 +99,13 @@
         const db = getFirestore(app);
         let editandoId = null;
 
-        // Persistência Offline (Fase 6.4/6.7)
-        enableIndexedDbPersistence(db).catch(() => console.log("Offline mode active (Cache only)"));
+        enableIndexedDbPersistence(db).catch(() => console.log("Offline mode active"));
 
         const loader = (s) => document.getElementById('loader-overlay').style.display = s ? 'flex' : 'none';
-
-        // Helper: Data pt-BR
-        const toBR = (val) => {
-            if(!val) return "S/ Data";
-            const [y, m, d] = val.split('-');
-            return `${d}/${m}/${y}`;
-        };
-
+        const toBR = (val) => { if(!val) return "S/ Data"; const [y, m, d] = val.split('-'); return `${d}/${m}/${y}`; };
+        
         const getSt = (val) => {
-            const d = new Date(val);
-            const hj = new Date();
+            const d = new Date(val); const hj = new Date();
             const diff = Math.ceil((d - hj) / (1000 * 60 * 60 * 24));
             if (diff <= 0) return { l: 'VENCIDO', c: 'badge-vencido' };
             if (diff <= 15) return { l: 'CRÍTICO', c: 'badge-alerta' };
@@ -114,7 +115,12 @@
         onAuthStateChanged(auth, (u) => {
             document.getElementById('login-screen').style.display = u ? 'none' : 'flex';
             document.getElementById('app-content').style.display = u ? 'block' : 'none';
-            if(u) carregar();
+            if(u) {
+                carregar();
+                const urlParams = new URLSearchParams(window.location.search);
+                const eanUrl = urlParams.get('ean');
+                if(eanUrl) setTimeout(() => window.showBC(eanUrl, "Consulta Rápida"), 1500);
+            }
         });
 
         document.getElementById('btn-entrar').addEventListener('click', () => {
@@ -128,8 +134,7 @@
             const lista = document.getElementById('lista');
             lista.innerHTML = "";
             snap.forEach(d => {
-                const i = d.data();
-                const s = getSt(i.validade);
+                const i = d.data(); const s = getSt(i.validade);
                 lista.innerHTML += `
                     <div class="history-item">
                         <span class="badge ${s.c}">${s.l}</span>
@@ -146,25 +151,16 @@
         }
 
         document.getElementById('btn-salvar').addEventListener('click', async () => {
-            const nome = document.getElementById('nome').value;
-            const ean = document.getElementById('ean').value;
-            const validade = document.getElementById('validade').value;
-            const qtd = document.getElementById('qtd').value;
-
-            if(!ean || !validade) return alert("Preencha EAN e Data!");
-
+            const n = document.getElementById('nome').value;
+            const e = document.getElementById('ean').value;
+            const v = document.getElementById('validade').value;
+            const q = document.getElementById('qtd').value;
+            if(!e || !v) return alert("Preencha EAN e Data!");
             loader(true);
-            const dados = { nome, ean, validade, quantidade: Number(qtd), usuario: auth.currentUser.email, timestamp: serverTimestamp() };
-            
-            try {
-                if(editandoId) {
-                    await updateDoc(doc(db, "estoque", editandoId), dados);
-                    editandoId = null;
-                } else {
-                    await addDoc(collection(db, "estoque"), dados);
-                }
-                location.reload();
-            } catch(e) { alert("Erro ao salvar!"); loader(false); }
+            const d = { nome: n, ean: e, validade: v, quantidade: Number(q), usuario: auth.currentUser.email, timestamp: serverTimestamp() };
+            if(editandoId) await updateDoc(doc(db, "estoque", editandoId), d);
+            else await addDoc(collection(db, "estoque"), d);
+            location.reload();
         });
 
         window.showBC = (ean, nome) => {
@@ -174,31 +170,29 @@
         };
 
         window.ed = async (id) => {
-            loader(true);
-            const d = await getDoc(doc(db, "estoque", id));
-            const i = d.data();
-            document.getElementById('nome').value = i.nome;
-            document.getElementById('ean').value = i.ean;
-            document.getElementById('validade').value = i.validade;
-            document.getElementById('qtd').value = i.quantidade;
-            document.getElementById('ean').classList.add('modo-edicao');
-            editandoId = id;
+            loader(true); const d = await getDoc(doc(db, "estoque", id)); const i = d.data();
+            document.getElementById('nome').value = i.nome; document.getElementById('ean').value = i.ean;
+            document.getElementById('validade').value = i.validade; document.getElementById('qtd').value = i.quantidade;
+            document.getElementById('ean').classList.add('modo-edicao'); editandoId = id;
             document.getElementById('btn-salvar').innerText = "ATUALIZAR";
-            document.getElementById('btn-salvar').style.background = "var(--warning)";
-            window.scrollTo(0,0);
-            loader(false);
+            window.scrollTo(0,0); loader(false);
         };
 
-        window.del = async (id) => { if(confirm("Apagar registro?")) { loader(true); await deleteDoc(doc(db, "estoque", id)); carregar(); }};
+        window.del = async (id) => { if(confirm("Apagar?")) { loader(true); await deleteDoc(doc(db, "estoque", id)); carregar(); }};
         window.sair = () => signOut(auth);
 
         document.getElementById('btn-wa').addEventListener('click', () => {
-            let m = "*RELATÓRIO NEWMARKET - " + new Date().toLocaleDateString('pt-BR') + "*%0A";
-            document.querySelectorAll('.history-item').forEach(i => {
+            const itens = document.querySelectorAll('.history-item');
+            let m = `*📊 NEWMARKET PRO - ${new Date().toLocaleDateString('pt-BR')}*%0A`;
+            m += `✅ *Total de Itens: ${itens.length}*%0A----------------------------%0A`;
+            itens.forEach(i => {
                 const n = i.querySelector('strong').innerText;
                 const s = i.querySelector('small').innerText;
                 const b = i.querySelector('.badge').innerText;
-                m += `%0A📦 *${n}*%0A🗓️ ${s}%0A⚠️ Status: ${b}%0A---`;
+                const ean = s.match(/EAN: (\d+)/)?.[1] || "";
+                m += `🛍️ *${n}*%0A🔢 ${s}%0A⚠️ Status: ${b}%0A`;
+                if(ean) m += `🔗 Bipar: https://newmarket.pkacci.com.br/?ean=${ean}%0A`;
+                m += "----------------------------%0A";
             });
             window.open(`https://wa.me/?text=${m}`);
         });
