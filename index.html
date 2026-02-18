@@ -105,150 +105,206 @@
             <button onclick="document.getElementById('modal-barcode').style.display='none'" style="background:var(--danger); color:white; margin-top:10px; padding:10px;">FECHAR</button>
         </div>
     </div>
-
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, getDocs, doc, deleteDoc, updateDoc, getDoc, query, orderBy, limit, serverTimestamp, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { 
+    getFirestore, collection, addDoc, getDocs, doc, deleteDoc, updateDoc, getDoc, 
+    query, orderBy, limit, serverTimestamp, enableIndexedDbPersistence 
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyCP-R0LVH_lEmZ3ks1Z4f64HwhzxmShZpg",
-            authDomain: "new-market-d4c5a.firebaseapp.com",
-            projectId: "new-market-d4c5a",
-            storageBucket: "new-market-d4c5a.firebasestorage.app",
-            messagingSenderId: "261011659066",
-            appId: "1:261011659066:web:36d66d6125b8db65621803"
-        };
+const firebaseConfig = {
+    apiKey: "AIzaSyCP-R0LVH_lEmZ3ks1Z4f64HwhzxmShZpg",
+    authDomain: "new-market-d4c5a.firebaseapp.com",
+    projectId: "new-market-d4c5a",
+    storageBucket: "new-market-d4c5a.firebasestorage.app",
+    messagingSenderId: "261011659066",
+    appId: "1:261011659066:web:36d66d6125b8db65621803"
+};
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        let editandoId = null;
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+let editandoId = null;
 
-        enableIndexedDbPersistence(db).catch(() => console.log("Offline mode ON"));
+enableIndexedDbPersistence(db).catch(() => console.log("Offline mode ON"));
 
-        const loader = (s) => document.getElementById('loader-overlay').style.display = s ? 'flex' : 'none';
-        const toBR = (v) => { if(!v) return "S/ Data"; const [y,m,d]=v.split('-'); return `${d}/${m}/${y}`; };
+const loader = (s) => document.getElementById('loader-overlay').style.display = s ? 'flex' : 'none';
+const toBR = (v) => { if(!v) return "S/ Data"; const [y,m,d]=v.split('-'); return `${d}/${m}/${y}`; };
 
-        // --- LÓGICA DO SCANNER (CÂMARA) ---
-        let scannerAtivo = false;
-        window.toggleScanner = () => {
-            if(scannerAtivo) {
-                Quagga.stop();
-                document.getElementById('scanner-visual').style.display = 'none';
-                scannerAtivo = false;
-                return;
-            }
+// --- SCANNER ---
+let scannerAtivo = false;
+window.toggleScanner = () => {
+    if(scannerAtivo) {
+        Quagga.stop();
+        document.getElementById('scanner-visual').style.display = 'none';
+        scannerAtivo = false;
+        return;
+    }
 
-            document.getElementById('scanner-visual').style.display = 'block';
-            Quagga.init({
-                inputStream: { name: "Live", type: "LiveStream", target: document.getElementById('scanner-visual'), constraints: { facingMode: "environment" } },
-                decoder: { readers: ["ean_reader", "code_128_reader", "ean_8_reader"] }
-            }, (err) => {
-                if(err) { alert("Câmara indisponível"); return; }
-                Quagga.start();
-                scannerAtivo = true;
-            });
+    document.getElementById('scanner-visual').style.display = 'block';
+    Quagga.init({
+        inputStream: { name: "Live", type: "LiveStream", target: document.getElementById('scanner-visual'), constraints: { facingMode: "environment" } },
+        decoder: { readers: ["ean_reader", "code_128_reader", "ean_8_reader"] }
+    }, (err) => {
+        if(err) { alert("Câmara indisponível"); return; }
+        Quagga.start();
+        scannerAtivo = true;
+    });
 
-            Quagga.onDetected((res) => {
-                document.getElementById('ean').value = res.codeResult.code;
-                if(navigator.vibrate) navigator.vibrate(100);
-                window.toggleScanner();
-            });
-        };
-        document.getElementById('btn-scan').addEventListener('click', window.toggleScanner);
+    Quagga.onDetected((res) => {
+        document.getElementById('ean').value = res.codeResult.code;
+        if(navigator.vibrate) navigator.vibrate(100);
+        window.toggleScanner();
+    });
+};
+document.getElementById('btn-scan').addEventListener('click', window.toggleScanner);
 
-        onAuthStateChanged(auth, (u) => {
-            loader(false);
-            if(u) {
-                document.getElementById('login-screen').style.display = 'none';
-                document.getElementById('app-content').style.display = 'block';
-                carregar();
-                const eanUrl = new URLSearchParams(window.location.search).get('ean');
-                if(eanUrl) setTimeout(() => window.showBC(eanUrl, "Consulta"), 1000);
-            } else {
-                document.getElementById('login-screen').style.display = 'flex';
-                document.getElementById('app-content').style.display = 'none';
-            }
+// --- AUTENTICAÇÃO ---
+onAuthStateChanged(auth, (u) => {
+    loader(false);
+    if(u) {
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('app-content').style.display = 'block';
+        carregar();
+        const eanUrl = new URLSearchParams(window.location.search).get('ean');
+        if(eanUrl) setTimeout(() => window.showBC(eanUrl, "Consulta"), 1000);
+    } else {
+        document.getElementById('login-screen').style.display = 'flex';
+        document.getElementById('app-content').style.display = 'none';
+    }
+});
+
+document.getElementById('btn-entrar').addEventListener('click', () => {
+    loader(true);
+    signInWithEmailAndPassword(auth, document.getElementById('l-email').value, document.getElementById('l-senha').value)
+        .catch(() => { loader(false); alert("Erro!"); });
+});
+
+// --- CARREGAR LISTA ---
+async function carregar() {
+    loader(true);
+    try {
+        const q = query(collection(db, "estoque"), orderBy("timestamp", "desc"), limit(20));
+        const snap = await getDocs(q);
+        const lista = document.getElementById('lista');
+        lista.innerHTML = "";
+        snap.forEach(d => {
+            const i = d.data();
+            const dV = new Date(i.validade); const hj = new Date();
+            const diff = Math.ceil((dV - hj) / 86400000);
+            let s = {l:'OK', c:'badge-ok'};
+            if(diff <= 0) s = {l:'VENCIDO', c:'badge-vencido'};
+            else if(diff <= 15) s = {l:'CRÍTICO', c:'badge-alerta'};
+
+            lista.innerHTML += `
+                <div class="history-item">
+                    <span class="badge ${s.c}">${s.l}</span>
+                    <strong>${i.nome || 'S/ NOME'}</strong><br>
+                    <small>EAN: ${i.ean} | Venc: ${toBR(i.validade)}</small>
+                    <div class="actions">
+                        <button class="btn-sm" onclick="window.showBC('${i.ean}','${i.nome}')">🔎 BIPAR</button>
+                        <button class="btn-sm" onclick="window.ed('${d.id}')">✏️ EDITAR</button>
+                        <button class="btn-sm" style="background:var(--danger)" onclick="window.del('${d.id}')">🗑️</button>
+                    </div>
+                </div>`;
         });
+    } catch(err) {
+        alert("Erro ao carregar produtos: " + err.message);
+    } finally {
+        loader(false);
+    }
+}
 
-        document.getElementById('btn-entrar').addEventListener('click', () => {
-            loader(true);
-            signInWithEmailAndPassword(auth, document.getElementById('l-email').value, document.getElementById('l-senha').value).catch(() => { loader(false); alert("Erro!"); });
-        });
+// --- SALVAR / ATUALIZAR ---
+document.getElementById('btn-salvar').addEventListener('click', async () => {
+    const d = { 
+        nome: document.getElementById('nome').value, 
+        ean: document.getElementById('ean').value, 
+        validade: document.getElementById('validade').value, 
+        quantidade: Number(document.getElementById('qtd').value),
+        timestamp: serverTimestamp() 
+    };
+    if(!d.ean || !d.validade) return alert("Dados em falta!");
+    loader(true);
+    try {
+        if(editandoId) await updateDoc(doc(db, "estoque", editandoId), d);
+        else await addDoc(collection(db, "estoque"), d);
+        editandoId = null;
+        document.getElementById('btn-salvar').innerText = "GUARDAR LOTE";
+        await carregar();
+        // limpa inputs
+        document.getElementById('nome').value = '';
+        document.getElementById('ean').value = '';
+        document.getElementById('validade').value = '';
+        document.getElementById('qtd').value = '';
+        document.getElementById('ean').classList.remove('modo-edicao');
+    } catch(err) {
+        alert("Erro ao salvar: " + err.message);
+    } finally {
+        loader(false);
+    }
+});
 
-        async function carregar() {
-            const q = query(collection(db, "estoque"), orderBy("timestamp", "desc"), limit(20));
-            const snap = await getDocs(q);
-            const lista = document.getElementById('lista');
-            lista.innerHTML = "";
-            snap.forEach(d => {
-                const i = d.data();
-                const dV = new Date(i.validade); const hj = new Date();
-                const diff = Math.ceil((dV - hj) / (86400000));
-                let s = {l:'OK', c:'badge-ok'};
-                if(diff <= 0) s = {l:'VENCIDO', c:'badge-vencido'};
-                else if(diff <= 15) s = {l:'CRÍTICO', c:'badge-alerta'};
+// --- MOSTRAR CÓDIGO DE BARRAS ---
+window.showBC = (ean, nome) => {
+    document.getElementById('modal-barcode').style.display = 'flex';
+    document.getElementById('m-nome').innerText = nome;
+    JsBarcode("#barcode-canvas", ean, { format: "CODE128", width: 2, height: 80, displayValue: true });
+};
 
-                lista.innerHTML += `
-                    <div class="history-item">
-                        <span class="badge ${s.c}">${s.l}</span>
-                        <strong>${i.nome || 'S/ NOME'}</strong><br>
-                        <small>EAN: ${i.ean} | Venc: ${toBR(i.validade)}</small>
-                        <div class="actions">
-                            <button class="btn-sm" onclick="window.showBC('${i.ean}','${i.nome}')">🔎 BIPAR</button>
-                            <button class="btn-sm" onclick="window.ed('${d.id}')">✏️ EDITAR</button>
-                            <button class="btn-sm" style="background:var(--danger)" onclick="window.del('${d.id}')">🗑️</button>
-                        </div>
-                    </div>`;
-            });
-        }
+// --- EDITAR PRODUTO ---
+window.ed = async (id) => {
+    loader(true);
+    try {
+        const d = await getDoc(doc(db, "estoque", id));
+        if(!d.exists()) throw new Error("Produto não encontrado");
+        const i = d.data();
+        document.getElementById('nome').value = i.nome;
+        document.getElementById('ean').value = i.ean;
+        document.getElementById('validade').value = i.validade;
+        document.getElementById('qtd').value = i.quantidade;
+        document.getElementById('ean').classList.add('modo-edicao');
+        editandoId = id;
+        document.getElementById('btn-salvar').innerText = "ATUALIZAR";
+        window.scrollTo({top:0, behavior:'smooth'});
+    } catch(err) {
+        alert("Erro ao carregar o produto: " + err.message);
+    } finally {
+        loader(false);
+    }
+};
 
-        document.getElementById('btn-salvar').addEventListener('click', async () => {
-            const d = { 
-                nome: document.getElementById('nome').value, 
-                ean: document.getElementById('ean').value, 
-                validade: document.getElementById('validade').value, 
-                quantidade: Number(document.getElementById('qtd').value),
-                timestamp: serverTimestamp() 
-            };
-            if(!d.ean || !d.validade) return alert("Dados em falta!");
-            loader(true);
-            if(editandoId) await updateDoc(doc(db, "estoque", editandoId), d);
-            else await addDoc(collection(db, "estoque"), d);
-            location.reload();
-        });
+// --- EXCLUIR PRODUTO ---
+window.del = async (id) => {
+    if (!confirm("Apagar?")) return;
+    loader(true);
+    try {
+        await deleteDoc(doc(db, "estoque", id));
+        await carregar();
+    } catch(err) {
+        alert("Erro ao apagar o produto: " + err.message);
+    } finally {
+        loader(false);
+    }
+};
 
-        window.showBC = (ean, nome) => {
-            document.getElementById('modal-barcode').style.display = 'flex';
-            document.getElementById('m-nome').innerText = nome;
-            JsBarcode("#barcode-canvas", ean, { format: "CODE128", width: 2, height: 80, displayValue: true });
-        };
+// --- LOGOUT ---
+window.sair = () => signOut(auth);
 
-        window.ed = async (id) => {
-            loader(true); const d = await getDoc(doc(db, "estoque", id)); const i = d.data();
-            document.getElementById('nome').value = i.nome; document.getElementById('ean').value = i.ean;
-            document.getElementById('validade').value = i.validade; document.getElementById('qtd').value = i.quantidade;
-            document.getElementById('ean').classList.add('modo-edicao'); editandoId = id;
-            document.getElementById('btn-salvar').innerText = "ATUALIZAR";
-            window.scrollTo({top:0, behavior:'smooth'}); loader(false);
-        };
-
-        window.del = async (id) => { if(confirm("Apagar?")) { await deleteDoc(doc(db, "estoque", id)); carregar(); }};
-        window.sair = () => signOut(auth);
-
-        document.getElementById('btn-wa').addEventListener('click', () => {
-            const itens = document.querySelectorAll('.history-item');
-            let m = `*📊 NEWMARKET PRO - ${new Date().toLocaleDateString('pt-BR')}*%0A`;
-            m += `✅ *Total: ${itens.length} itens*%0A----------------------------%0A`;
-            itens.forEach(i => {
-                const n = i.querySelector('strong').innerText;
-                const s = i.querySelector('small').innerText;
-                const ean = s.match(/EAN: (\d+)/)?.[1] || "";
-                m += `📦 *${n}*%0A🔢 ${s}%0A🔗 Ver: https://newmarket.pkacci.com.br/?ean=${ean}%0A----------------------------%0A`;
-            });
-            window.open(`https://wa.me/?text=${m}`);
-        });
+// --- RELATÓRIO WHATSAPP ---
+document.getElementById('btn-wa').addEventListener('click', () => {
+    const itens = document.querySelectorAll('.history-item');
+    let m = `*📊 NEWMARKET PRO - ${new Date().toLocaleDateString('pt-BR')}*%0A`;
+    m += `✅ *Total: ${itens.length} itens*%0A----------------------------%0A`;
+    itens.forEach(i => {
+        const n = i.querySelector('strong').innerText;
+        const s = i.querySelector('small').innerText;
+        const ean = s.match(/EAN: (\d+)/)?.[1] || "";
+        m += `📦 *${n}*%0A🔢 ${s}%0A🔗 Ver: https://newmarket.pkacci.com.br/?ean=${ean}%0A----------------------------%0A`;
+    });
+    window.open(`https://wa.me/?text=${m}`);
+});
     </script>
 </body>
 </html>
